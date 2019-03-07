@@ -152,9 +152,10 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
   // Can be called on any thread.
   public void setRawObjectToRender(RawObject rawObject) {
-    if (objectToRender != null) throw new RuntimeException("Already had object.");
+    //if (objectToRender != null) throw new RuntimeException("Already had object.");
     // It's safe to set objectToRender from a different thread. It's marked as volatile, and
     // the GL thread will notice it on the next frame.
+    readyToRender = false;
     objectToRender = rawObject;
     Log.d(TAG, "Received raw object to render.");
   }

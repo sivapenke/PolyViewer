@@ -2,15 +2,23 @@ package com.example.polyviewer;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.Image;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -19,8 +27,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -38,6 +48,8 @@ public class MainActivity extends Activity {
 
     // The asset ID to download and display.
     private static final String ASSET_ID = "a648BwpXx-A";
+
+    private static final String ASSET_ID_PIANO = "5vbJ5vildOq";
 
     // The size we want to scale the asset to, for display. This size guarantees that no matter
     // how big or small the asset is, we will scale it to a reasonable size for viewing.
@@ -58,10 +70,15 @@ public class MainActivity extends Activity {
     // TextView that displays the status.
     private TextView statusText;
 
+    // Search Editview
+    private EditText searchEditText;
+
     // ListView for hold thumbnails from POLY list api
     private ListView searchListView;
 
-    private List<String> searchList = new ArrayList<>();
+    private List<JSONObject> assetList = new ArrayList<>();
+
+    private LocalArrayAdapter adapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -72,19 +89,35 @@ public class MainActivity extends Activity {
         glView = findViewById(R.id.my_gl_surface_view);
         statusText = findViewById(R.id.status_text);
         searchListView = findViewById(R.id.search_list);
+        searchEditText = findViewById(R.id.search_edit_text);
 
-        //TEST TODO
-        searchList.add("image1");
-        searchList.add("image2");
-        searchList.add("image3");
+        searchEditText.setOnEditorActionListener(new EditText.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    searchEditText.clearFocus();
+                    getSearchAsset(searchEditText.getText().toString());
+                }
+                return false;
+            }
+        });
 
-        final LocalArrayAdapter adapter = new LocalArrayAdapter(this, searchList);
+        adapter = new LocalArrayAdapter(this, assetList);
         searchListView.setAdapter(adapter);
 
         searchListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
+                try {
+                    String objectId = adapter.values.get(position).getString("name");
+                    String[] arr = objectId.split("/");
+
+                    if(arr.length > 1)
+                        downloadAsset(arr[1]);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
 
             }
         });
@@ -96,28 +129,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Create a background thread, where we will do the heavy lifting.
-        backgroundThread = new HandlerThread("Worker");
-        backgroundThread.start();
-        backgroundThreadHandler = new Handler(backgroundThread.getLooper());
-
-        // Request the asset from the Poly API.
-        Log.d(TAG, "Requesting asset " + ASSET_ID);
-        statusText.setText("Requesting...");
-        PolyApi.GetAsset(ASSET_ID, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
-            @Override
-            public void onHttpRequestSuccess(byte[] responseBody) {
-                // Successfully fetched asset information. This does NOT include the model's geometry,
-                // it's just the metadata. Let's parse it.
-                parseAsset(responseBody);
-            }
-
-            @Override
-            public void onHttpRequestFailure(int statusCode, String message, Exception exception) {
-                // Something went wrong with the request.
-                handleRequestFailure(statusCode, message, exception);
-            }
-        });
+        downloadAsset(ASSET_ID);
     }
 
     @Override
@@ -138,39 +150,96 @@ public class MainActivity extends Activity {
         glView.onResume();
     }
 
-    public class LocalArrayAdapter extends BaseAdapter {
-        private final Context mContext;
-        private ImageView mImageView;
-        private List<String> values;
+    void downloadAsset(String assetId) {
+        // Create a background thread, where we will do the heavy lifting.
+        backgroundThread = new HandlerThread("Worker");
+        backgroundThread.start();
+        backgroundThreadHandler = new Handler(backgroundThread.getLooper());
 
-        public LocalArrayAdapter(Context context, List<String> values) {
-            this.mContext = context;
-            this.values = values;
+        // Request the asset from the Poly API.
+        Log.d(TAG, "Requesting asset " + ASSET_ID);
+        statusText.setText("Requesting...");
+        PolyApi.GetAsset(assetId, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
+            @Override
+            public void onHttpRequestSuccess(byte[] responseBody) {
+                // Successfully fetched asset information. This does NOT include the model's geometry,
+                // it's just the metadata. Let's parse it.
+                parseAsset(responseBody);
+            }
+
+            @Override
+            public void onHttpRequestFailure(int statusCode, String message, Exception exception) {
+                // Something went wrong with the request.
+                handleRequestFailure(statusCode, message, exception);
+            }
+        });
+    }
+
+    void getSearchAsset(String searchString) {
+        if (searchString.isEmpty())
+            return;
+
+        // Create a background thread, where we will do the heavy lifting.
+        backgroundThread = new HandlerThread("Worker");
+        backgroundThread.start();
+        backgroundThreadHandler = new Handler(backgroundThread.getLooper());
+        statusText.setText("Requesting...");
+
+        PolyApi.GetAssetUsingSearchString(searchString, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
+            @Override
+            public void onHttpRequestSuccess(byte[] responseBody) {
+                // Successfully fetched asset information. This does NOT include the model's geometry,
+                // it's just the metadata. Let's parse it.
+                parseAssetSearchString(responseBody);
+            }
+
+            @Override
+            public void onHttpRequestFailure(int statusCode, String message, Exception exception) {
+                // Something went wrong with the request.
+                handleRequestFailure(statusCode, message, exception);
+            }
+        });
+    }
+
+    private List<String> getAllThumbnail(JSONArray assets) throws JSONException {
+        List<String> list = new ArrayList<>();
+
+        for (int i = 0; i < assets.length(); i++) {
+            JSONObject asset = assets.getJSONObject(i);
+            JSONObject thumbnail = asset.getJSONObject("thumbnail");
+            list.add(thumbnail.getString("url"));
         }
 
-        @Override
-        public int getCount() {
-            return values.size();
-        }
+        return new ArrayList<>(list);
+    }
 
-        @Override
-        public Object getItem(int position) {
-            return values.get(position);
-        }
+    private void parseAssetSearchString(byte[] assetData) {
+        Log.d(TAG, "Got asset response (" + assetData.length + " bytes). Parsing.");
+        String assetBody = new String(assetData, Charset.forName("UTF-8"));
+        Log.d(TAG, assetBody);
+        try {
+            JSONObject response = new JSONObject(assetBody);
 
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
+            // multiple items can be founds - api returns an array of assets
+            JSONArray assets = response.getJSONArray("assets");
 
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            final LayoutInflater inflater = LayoutInflater.from(mContext);
-            View rowView = inflater.inflate(R.layout.search_item, parent, false);
-            mImageView = rowView.findViewById(R.id.icon);
-            //set imageview source here
+            ArrayList<String> thumbnails = (ArrayList<String>) getAllThumbnail(assets);
 
-            return rowView;
+            // download all thumbails in the background
+            new DownloadImageTask().execute(thumbnails.toArray(new String[0]));
+
+            for (int i = 0; i < assets.length(); i++) {
+                JSONObject asset = assets.getJSONObject(i);
+                assetList.add(asset);
+            }
+
+            // now that we have all the assets; set the list view adpater
+            updateAdapater();
+
+        } catch (JSONException jsonException) {
+            Log.e(TAG, "JSON parsing error while processing response: " + jsonException);
+            jsonException.printStackTrace();
+            setStatusMessageOnUiThread("Failed to parse response.");
         }
     }
 
@@ -181,38 +250,45 @@ public class MainActivity extends Activity {
         Log.d(TAG, assetBody);
         try {
             JSONObject response = new JSONObject(assetBody);
+            parseAssetHelper(response);
 
-            // Display attribution in a toast, for simplicity. In your app, you don't have to use a
-            // toast to do this. You can display it where it's most appropriate for your app.
-            setStatusMessageOnUiThread(response.getString("displayName") + " by " +
-                    response.getString("authorName"));
-
-            // The asset may have several formats (OBJ, GLTF, FBX, etc). We will look for the OBJ format.
-            JSONArray formats = response.getJSONArray("formats");
-            boolean foundObjFormat = false;
-            for (int i = 0; i < formats.length(); i++) {
-                JSONObject format = formats.getJSONObject(i);
-                if (format.getString("formatType").equals("OBJ")) {
-                    // Found the OBJ format. The format gives us the URL of the data files that we should
-                    // download (which include the OBJ file, the MTL file and the textures). We will now
-                    // request those files.
-                    requestDataFiles(format);
-                    foundObjFormat = true;
-                    break;
-                }
-            }
-            if (!foundObjFormat) {
-                // If this happens, it's because the asset doesn't have a representation in the OBJ
-                // format. Since this simple sample code can only parse OBJ, we can't proceed.
-                // But other formats might be available, so if your client supports multiple formats,
-                // you could still try a different format instead.
-                Log.e(TAG, "Could not find OBJ format in asset.");
-                return;
-            }
         } catch (JSONException jsonException) {
             Log.e(TAG, "JSON parsing error while processing response: " + jsonException);
             jsonException.printStackTrace();
             setStatusMessageOnUiThread("Failed to parse response.");
+        }
+    }
+
+    private void parseAssetHelper(JSONObject response) throws JSONException {
+        // Display attribution in a toast, for simplicity. In your app, you don't have to use a
+        // toast to do this. You can display it where it's most appropriate for your app.
+        String displayName = response.getString("displayName");
+        String authorName = response.getString("authorName");
+
+        if(displayName !=null && authorName != null)
+            setStatusMessageOnUiThread( displayName + " by " + authorName);
+
+        // The asset may have several formats (OBJ, GLTF, FBX, etc). We will look for the OBJ format.
+        JSONArray formats = response.getJSONArray("formats");
+        boolean foundObjFormat = false;
+        for (int i = 0; i < formats.length(); i++) {
+            JSONObject format = formats.getJSONObject(i);
+            if (format.getString("formatType").equals("OBJ")) {
+                // Found the OBJ format. The format gives us the URL of the data files that we should
+                // download (which include the OBJ file, the MTL file and the textures). We will now
+                // request those files.
+                requestDataFiles(format);
+                foundObjFormat = true;
+                break;
+            }
+        }
+        if (!foundObjFormat) {
+            // If this happens, it's because the asset doesn't have a representation in the OBJ
+            // format. Since this simple sample code can only parse OBJ, we can't proceed.
+            // But other formats might be available, so if your client supports multiple formats,
+            // you could still try a different format instead.
+            Log.e(TAG, "Could not find OBJ format in asset.");
+            return;
         }
     }
 
@@ -271,11 +347,11 @@ public class MainActivity extends Activity {
                 String contents = new String(entry.contents, Charset.forName("UTF-8"));
                 if (entry.fileName.toLowerCase().endsWith(".obj")) {
                     // It's the OBJ file.
-                    if (objGeometry != null) {
+/*                    if (objGeometry != null) {
                         // Shouldn't happen. There should only be one OBJ file.
                         Log.w(TAG, "Package had more than one OBJ file. Ignoring.");
                         continue;
-                    }
+                    }*/
                     objGeometry = ObjGeometry.parse(contents);
                 } else if (entry.fileName.toLowerCase().endsWith(".mtl")) {
                     // There can be more than one MTL file. Just add the materials to our library.
@@ -334,5 +410,113 @@ public class MainActivity extends Activity {
                 statusText.setText(statusMessage);
             }
         });
+    }
+
+    private void updateAdapater() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+    // download thumbnails here
+    private class DownloadImageTask extends AsyncTask<String, Void, HashMap> {
+        HashMap<String, Bitmap> bitmapHashMap = new HashMap<>();
+
+        private DownloadImageTask() {
+
+        }
+
+        protected HashMap<String, Bitmap> doInBackground(String... urls) {
+
+            for(String url : urls) {
+                Bitmap icon;
+                try {
+                    InputStream in = new java.net.URL(url).openStream();
+                    icon = BitmapFactory.decodeStream(in);
+
+                    bitmapHashMap.put(url, icon);
+                } catch (Exception e) {
+                    Log.e("Error", e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+
+            return bitmapHashMap;
+        }
+
+        protected void onPostExecute(HashMap result) {
+            adapter.setThumbnails(result);
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    private class LocalArrayAdapter extends BaseAdapter {
+        private final Context mContext;
+        private List<JSONObject> values;
+        private HashMap<String, Bitmap> thumbnailHashMap;
+
+        public LocalArrayAdapter(Context context, List<JSONObject> values) {
+            this.mContext = context;
+            this.values = values;
+        }
+
+        public void setThumbnails(HashMap<String, Bitmap> map) {
+            this.thumbnailHashMap = map;
+        }
+
+        @Override
+        public int getCount() {
+            return values.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return values.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+
+            if(convertView == null) {
+                final LayoutInflater inflater = LayoutInflater.from(mContext);
+                convertView = inflater.inflate(R.layout.search_item, parent, false);
+                final ImageView iv = convertView.findViewById(R.id.icon);
+                final LocalArrayAdapter.ViewHolder viewHolder = new LocalArrayAdapter.ViewHolder(iv);
+                convertView.setTag(viewHolder);
+            }
+
+
+            LocalArrayAdapter.ViewHolder viewHolder = (LocalArrayAdapter.ViewHolder) convertView.getTag();
+
+            try {
+                if(thumbnailHashMap != null && thumbnailHashMap.containsKey(getUrl(position)))
+                    viewHolder.iv.setImageBitmap(thumbnailHashMap.get(getUrl(position)));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            return convertView;
+        }
+
+        private String getUrl(int pos) throws JSONException{
+            JSONObject thumbnail = values.get(pos).getJSONObject("thumbnail");
+            return thumbnail.getString("url");
+        }
+
+        private class ViewHolder {
+            private final ImageView iv;
+
+            public ViewHolder(ImageView iv) {
+                this.iv = iv;
+            }
+        }
     }
 }

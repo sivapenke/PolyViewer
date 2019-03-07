@@ -80,6 +80,8 @@ public class MainActivity extends Activity {
 
     private LocalArrayAdapter adapter;
 
+    private String mUserSearchString;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -176,8 +178,10 @@ public class MainActivity extends Activity {
     }
 
     void getSearchAsset(String searchString) {
-        if (searchString.isEmpty())
+        if (searchString.isEmpty() || searchString.equals(mUserSearchString))
             return;
+
+        mUserSearchString = searchString;
 
         // Create a background thread, where we will do the heavy lifting.
         backgroundThread = new HandlerThread("Worker");
@@ -185,7 +189,7 @@ public class MainActivity extends Activity {
         backgroundThreadHandler = new Handler(backgroundThread.getLooper());
         statusText.setText("Requesting...");
 
-        PolyApi.GetAssetUsingSearchString(searchString, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
+        PolyApi.GetAssetUsingSearchString(mUserSearchString, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
             @Override
             public void onHttpRequestSuccess(byte[] responseBody) {
                 // Successfully fetched asset information. This does NOT include the model's geometry,
@@ -225,8 +229,11 @@ public class MainActivity extends Activity {
 
             ArrayList<String> thumbnails = (ArrayList<String>) getAllThumbnail(assets);
 
-            // download all thumbails in the background
+            // download all thumbnails in the background
             new DownloadImageTask().execute(thumbnails.toArray(new String[0]));
+
+            // upon new search, you now get new assestlist. So, clear the old one
+            assetList.clear();
 
             for (int i = 0; i < assets.length(); i++) {
                 JSONObject asset = assets.getJSONObject(i);

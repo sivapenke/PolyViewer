@@ -37,8 +37,9 @@ limitations under the License.
     <ListView
         android:id="@+id/search_list"
         android:layout_width="100sp"
-        android:layout_height="match_parent">
-    </ListView>
+        android:layout_height="match_parent"
+        android:divider="@null"
+        android:dividerHeight="0sp" />
 
     <EditText
         android:id="@+id/search_edit_text"

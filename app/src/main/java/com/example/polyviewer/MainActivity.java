@@ -1,11 +1,18 @@
 package com.example.polyviewer;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -13,6 +20,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main Activity.
@@ -49,6 +58,11 @@ public class MainActivity extends Activity {
     // TextView that displays the status.
     private TextView statusText;
 
+    // ListView for hold thumbnails from POLY list api
+    private ListView searchListView;
+
+    private List<String> searchList = new ArrayList<>();
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,11 +71,28 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         glView = findViewById(R.id.my_gl_surface_view);
         statusText = findViewById(R.id.status_text);
+        searchListView = findViewById(R.id.search_list);
+
+        //TEST TODO
+        searchList.add("image1");
+        searchList.add("image2");
+        searchList.add("image3");
+
+        final LocalArrayAdapter adapter = new LocalArrayAdapter(this, searchList);
+        searchListView.setAdapter(adapter);
+
+        searchListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+
+            }
+        });
 
         glView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                    glView.getRenderer().startAnimation(true);
+                glView.getRenderer().startAnimation(true);
             }
         });
 
@@ -105,6 +136,42 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         glView.onResume();
+    }
+
+    public class LocalArrayAdapter extends BaseAdapter {
+        private final Context mContext;
+        private ImageView mImageView;
+        private List<String> values;
+
+        public LocalArrayAdapter(Context context, List<String> values) {
+            this.mContext = context;
+            this.values = values;
+        }
+
+        @Override
+        public int getCount() {
+            return values.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return values.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            final LayoutInflater inflater = LayoutInflater.from(mContext);
+            View rowView = inflater.inflate(R.layout.search_item, parent, false);
+            mImageView = rowView.findViewById(R.id.icon);
+            //set imageview source here
+
+            return rowView;
+        }
     }
 
     // NOTE: this runs on the background thread.

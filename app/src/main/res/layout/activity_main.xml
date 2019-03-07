@@ -34,4 +34,10 @@ limitations under the License.
         android:layout_margin="32dp"
         android:textColor="#ffffff" />
 
+    <ListView
+        android:id="@+id/search_list"
+        android:layout_width="100sp"
+        android:layout_height="match_parent">
+    </ListView>
+
 </FrameLayout>

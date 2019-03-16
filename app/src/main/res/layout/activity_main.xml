@@ -23,7 +23,7 @@ limitations under the License.
     <com.example.polyviewer.MyGLSurfaceView
         android:id="@+id/my_gl_surface_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="300sp" />
 
     <TextView
         android:id="@+id/status_text"
@@ -34,10 +34,11 @@ limitations under the License.
         android:layout_margin="32dp"
         android:textColor="#ffffff" />
 
-    <ListView
+    <android.support.v7.widget.RecyclerView
         android:id="@+id/search_list"
         android:layout_width="100sp"
         android:layout_height="match_parent"
+        android:orientation="horizontal"
         android:divider="@null"
         android:dividerHeight="0sp" />
 

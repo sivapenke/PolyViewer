@@ -4,23 +4,21 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -74,11 +72,11 @@ public class MainActivity extends Activity {
     private EditText searchEditText;
 
     // ListView for hold thumbnails from POLY list api
-    private ListView searchListView;
+    private RecyclerView searchListView;
 
     private List<JSONObject> assetList = new ArrayList<>();
 
-    private LocalArrayAdapter adapter;
+    private MyRecyclerViewAdapter adapter;
 
     private String mUserSearchString;
 
@@ -93,6 +91,12 @@ public class MainActivity extends Activity {
         searchListView = findViewById(R.id.search_list);
         searchEditText = findViewById(R.id.search_edit_text);
 
+        RecyclerView recyclerView = findViewById(R.id.search_list);
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        recyclerView.setLayoutManager(layoutManager);
+
         searchEditText.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
@@ -104,25 +108,9 @@ public class MainActivity extends Activity {
             }
         });
 
-        adapter = new LocalArrayAdapter(this, assetList);
+        adapter = new MyRecyclerViewAdapter(this, assetList);
+        adapter.setClickListener(this);
         searchListView.setAdapter(adapter);
-
-        searchListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                try {
-                    String objectId = adapter.values.get(position).getString("name");
-                    String[] arr = objectId.split("/");
-
-                    if(arr.length > 1)
-                        downloadAsset(arr[1]);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        });
 
         glView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -428,6 +416,19 @@ public class MainActivity extends Activity {
         });
     }
 
+    @Override
+    public void onItemClick(View view, int position) {
+        try {
+            String objectId = adapter.values.get(position).getString("name");
+            String[] arr = objectId.split("/");
+
+            if(arr.length > 1)
+                downloadAsset(arr[1]);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     // download thumbnails here
     private class DownloadImageTask extends AsyncTask<String, Void, HashMap> {
         HashMap<String, Bitmap> bitmapHashMap = new HashMap<>();
@@ -460,7 +461,87 @@ public class MainActivity extends Activity {
         }
     }
 
-    private class LocalArrayAdapter extends BaseAdapter {
+    public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.ViewHolder> {
+
+        private LayoutInflater mInflater;
+        private ItemClickListener mClickListener;
+        private List<JSONObject> values;
+        private HashMap<String, Bitmap> thumbnailHashMap;
+
+        // data is passed into the constructor
+        MyRecyclerViewAdapter(Context context, List<JSONObject> data) {
+            this.mInflater = LayoutInflater.from(context);
+            this.values = data;
+        }
+
+        // inflates the row layout from xml when needed
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = mInflater.inflate(R.layout.search_item, parent, false);
+            return new ViewHolder(view);
+        }
+
+        // binds the data to the TextView in each row
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            //JSONObject obj = values.get(position);
+
+            try {
+                if(thumbnailHashMap != null && thumbnailHashMap.containsKey(getUrl(position)))
+                    holder.iv.setImageBitmap(thumbnailHashMap.get(getUrl(position)));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // total number of rows
+        @Override
+        public int getItemCount() {
+            return values.size();
+        }
+
+        public void setThumbnails(HashMap<String, Bitmap> map) {
+            this.thumbnailHashMap = map;
+        }
+
+        // stores and recycles views as they are scrolled off screen
+        public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+            ImageView iv;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                iv = itemView.findViewById(R.id.icon);
+                itemView.setOnClickListener(this);
+            }
+
+            @Override
+            public void onClick(View view) {
+                if (mClickListener != null) mClickListener.onItemClick(view, getAdapterPosition());
+            }
+        }
+
+        // convenience method for getting data at click position
+        Object getItem(int id) {
+            return values.get(id);
+        }
+
+        // allows clicks events to be caught
+        void setClickListener(ItemClickListener itemClickListener) {
+            this.mClickListener = itemClickListener;
+        }
+
+        // parent activity will implement this method to respond to click events
+        public interface ItemClickListener {
+            void onItemClick(View view, int position);
+        }
+
+        private String getUrl(int pos) throws JSONException{
+            JSONObject thumbnail = values.get(pos).getJSONObject("thumbnail");
+            return thumbnail.getString("url");
+        }
+    }
+
+/*    private class LocalArrayAdapter extends BaseAdapter {
         private final Context mContext;
         private List<JSONObject> values;
         private HashMap<String, Bitmap> thumbnailHashMap;
@@ -500,7 +581,6 @@ public class MainActivity extends Activity {
                 convertView.setTag(viewHolder);
             }
 
-
             LocalArrayAdapter.ViewHolder viewHolder = (LocalArrayAdapter.ViewHolder) convertView.getTag();
 
             try {
@@ -525,5 +605,5 @@ public class MainActivity extends Activity {
                 this.iv = iv;
             }
         }
-    }
+    }*/
 }

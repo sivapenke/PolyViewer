@@ -16,7 +16,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
-import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -66,13 +65,10 @@ public class MainActivity extends Activity {
     private AsyncFileDownloader fileDownloader;
 
     // TextView that displays the status.
-    private TextView statusText;
+    private TextView modelNameText, authorNameText;
 
     // Search Editview
     private EditText searchEditText;
-
-    // ListView for hold thumbnails from POLY list api
-    private RecyclerView searchListView;
 
     private List<JSONObject> assetList = new ArrayList<>();
 
@@ -87,15 +83,15 @@ public class MainActivity extends Activity {
         // Set the Activity's layout and get the references to our views.
         setContentView(R.layout.activity_main);
         glView = findViewById(R.id.my_gl_surface_view);
-        statusText = findViewById(R.id.status_text);
-        searchListView = findViewById(R.id.search_list);
+        modelNameText = findViewById(R.id.model_name_text);
+        authorNameText = findViewById(R.id.author_name_text);
         searchEditText = findViewById(R.id.search_edit_text);
 
-        RecyclerView recyclerView = findViewById(R.id.search_list);
-
+        // setup horizontal list using recyclerView
+        RecyclerView searchListView = findViewById(R.id.search_list);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
-        recyclerView.setLayoutManager(layoutManager);
+        searchListView.setLayoutManager(layoutManager);
 
         searchEditText.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
@@ -109,7 +105,21 @@ public class MainActivity extends Activity {
         });
 
         adapter = new MyRecyclerViewAdapter(this, assetList);
-        adapter.setClickListener(this);
+        adapter.setClickListener(new MyRecyclerViewAdapter.ItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                try {
+                    String objectId = adapter.values.get(position).getString("name");
+                    String[] arr = objectId.split("/");
+
+                    if(arr.length > 1)
+                        downloadAsset(arr[1]);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         searchListView.setAdapter(adapter);
 
         glView.setOnClickListener(new View.OnClickListener() {
@@ -148,7 +158,8 @@ public class MainActivity extends Activity {
 
         // Request the asset from the Poly API.
         Log.d(TAG, "Requesting asset " + ASSET_ID);
-        statusText.setText("Requesting...");
+        modelNameText.setText("Requesting...");
+        authorNameText.setText("Requesting...");
         PolyApi.GetAsset(assetId, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
             @Override
             public void onHttpRequestSuccess(byte[] responseBody) {
@@ -175,7 +186,9 @@ public class MainActivity extends Activity {
         backgroundThread = new HandlerThread("Worker");
         backgroundThread.start();
         backgroundThreadHandler = new Handler(backgroundThread.getLooper());
-        statusText.setText("Requesting...");
+        modelNameText.setText("Requesting...");
+        authorNameText.setText("Requesting...");
+
 
         PolyApi.GetAssetUsingSearchString(mUserSearchString, backgroundThreadHandler, new AsyncHttpRequest.CompletionListener() {
             @Override
@@ -283,7 +296,6 @@ public class MainActivity extends Activity {
             // But other formats might be available, so if your client supports multiple formats,
             // you could still try a different format instead.
             Log.e(TAG, "Could not find OBJ format in asset.");
-            return;
         }
     }
 
@@ -402,7 +414,12 @@ public class MainActivity extends Activity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                statusText.setText(statusMessage);
+                String[] str = statusMessage.split(" by ");
+
+                if(str.length > 0)
+                    modelNameText.setText(str[0]);
+                if(str.length > 1)
+                    authorNameText.setText("By " + str[1]);
             }
         });
     }
@@ -414,19 +431,6 @@ public class MainActivity extends Activity {
                 adapter.notifyDataSetChanged();
             }
         });
-    }
-
-    @Override
-    public void onItemClick(View view, int position) {
-        try {
-            String objectId = adapter.values.get(position).getString("name");
-            String[] arr = objectId.split("/");
-
-            if(arr.length > 1)
-                downloadAsset(arr[1]);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
     }
 
     // download thumbnails here
@@ -461,7 +465,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.ViewHolder> {
+    public static class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.ViewHolder> {
 
         private LayoutInflater mInflater;
         private ItemClickListener mClickListener;
@@ -520,11 +524,6 @@ public class MainActivity extends Activity {
             }
         }
 
-        // convenience method for getting data at click position
-        Object getItem(int id) {
-            return values.get(id);
-        }
-
         // allows clicks events to be caught
         void setClickListener(ItemClickListener itemClickListener) {
             this.mClickListener = itemClickListener;
@@ -535,75 +534,10 @@ public class MainActivity extends Activity {
             void onItemClick(View view, int position);
         }
 
-        private String getUrl(int pos) throws JSONException{
+        private String getUrl(int pos) throws JSONException {
             JSONObject thumbnail = values.get(pos).getJSONObject("thumbnail");
             return thumbnail.getString("url");
         }
     }
 
-/*    private class LocalArrayAdapter extends BaseAdapter {
-        private final Context mContext;
-        private List<JSONObject> values;
-        private HashMap<String, Bitmap> thumbnailHashMap;
-
-        public LocalArrayAdapter(Context context, List<JSONObject> values) {
-            this.mContext = context;
-            this.values = values;
-        }
-
-        public void setThumbnails(HashMap<String, Bitmap> map) {
-            this.thumbnailHashMap = map;
-        }
-
-        @Override
-        public int getCount() {
-            return values.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return values.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-
-            if(convertView == null) {
-                final LayoutInflater inflater = LayoutInflater.from(mContext);
-                convertView = inflater.inflate(R.layout.search_item, parent, false);
-                final ImageView iv = convertView.findViewById(R.id.icon);
-                final LocalArrayAdapter.ViewHolder viewHolder = new LocalArrayAdapter.ViewHolder(iv);
-                convertView.setTag(viewHolder);
-            }
-
-            LocalArrayAdapter.ViewHolder viewHolder = (LocalArrayAdapter.ViewHolder) convertView.getTag();
-
-            try {
-                if(thumbnailHashMap != null && thumbnailHashMap.containsKey(getUrl(position)))
-                    viewHolder.iv.setImageBitmap(thumbnailHashMap.get(getUrl(position)));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            return convertView;
-        }
-
-        private String getUrl(int pos) throws JSONException{
-            JSONObject thumbnail = values.get(pos).getJSONObject("thumbnail");
-            return thumbnail.getString("url");
-        }
-
-        private class ViewHolder {
-            private final ImageView iv;
-
-            public ViewHolder(ImageView iv) {
-                this.iv = iv;
-            }
-        }
-    }*/
 }

@@ -18,6 +18,7 @@ limitations under the License.
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#152F47"
     tools:context="com.example.polyviewer.MainActivity">
 
     <com.example.polyviewer.MyGLSurfaceView
@@ -26,30 +27,53 @@ limitations under the License.
         android:layout_height="300sp" />
 
     <TextView
-        android:id="@+id/status_text"
+        android:id="@+id/model_name_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="320sp"
+        android:padding="8sp"
+        android:layout_gravity="top|start"
         android:text=""
-        android:layout_gravity="bottom|right"
-        android:layout_margin="32dp"
+        android:textSize="22sp"
+        android:textColor="#ffffff" />
+
+    <TextView
+        android:id="@+id/author_name_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="350sp"
+        android:layout_gravity="top|start"
+        android:padding="8sp"
+        android:text=""
+        android:textSize="14sp"
+        android:textStyle="italic"
+        android:textColor="#ffffff" />
+
+    <TextView
+        android:id="@+id/description_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="400sp"
+        android:padding="8sp"
+        android:layout_gravity="top|start"
+        android:text="Description\n\nThis is a sample description of this model. More information about this object can be stored as part of the model or can be scrapped from Wikipedia."
         android:textColor="#ffffff" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/search_list"
-        android:layout_width="100sp"
-        android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:background="#10293A"
         android:orientation="horizontal"
-        android:divider="@null"
-        android:dividerHeight="0sp" />
+        android:layout_gravity="bottom" />
 
     <EditText
         android:id="@+id/search_edit_text"
-        android:layout_width="200sp"
+        android:layout_width="150sp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10sp"
-        android:layout_marginEnd="50sp"
+        android:layout_marginTop="8sp"
         android:hint="search"
-        android:layout_gravity="top|right"
+        android:layout_gravity="top|end"
         android:gravity="center"
         android:inputType="text"
         android:singleLine="true"

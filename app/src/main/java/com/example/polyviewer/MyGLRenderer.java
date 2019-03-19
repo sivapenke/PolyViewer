@@ -86,7 +86,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-        GLES20.glClearColor(0.0f, 0.15f, 0.15f, 1.0f);
+        GLES20.glClearColor(0.297f, 0.29f, 0.29f, 1.0f);
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         lastFrameTime = System.currentTimeMillis();
         myShader = new MyShader();

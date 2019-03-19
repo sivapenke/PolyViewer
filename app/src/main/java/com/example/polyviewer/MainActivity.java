@@ -76,6 +76,8 @@ public class MainActivity extends Activity {
 
     private String mUserSearchString;
 
+    private TextView animateItText, makeASoundText, learnMoreText;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -86,6 +88,10 @@ public class MainActivity extends Activity {
         modelNameText = findViewById(R.id.model_name_text);
         authorNameText = findViewById(R.id.author_name_text);
         searchEditText = findViewById(R.id.search_edit_text);
+
+        animateItText = findViewById(R.id.animate_text);
+        makeASoundText = findViewById(R.id.sound_text);
+        learnMoreText = findViewById(R.id.learn_more_text);
 
         // setup horizontal list using recyclerView
         RecyclerView searchListView = findViewById(R.id.search_list);
@@ -126,6 +132,20 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 glView.getRenderer().startAnimation(true);
+            }
+        });
+
+        animateItText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                glView.getRenderer().startAnimation(true);
+            }
+        });
+
+        animateItText.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                return false;
             }
         });
 
@@ -233,7 +253,7 @@ public class MainActivity extends Activity {
             // download all thumbnails in the background
             new DownloadImageTask().execute(thumbnails.toArray(new String[0]));
 
-            // upon new search, you now get new assestlist. So, clear the old one
+            // upon new search, you now get new assetlist. So, clear the old one
             assetList.clear();
 
             for (int i = 0; i < assets.length(); i++) {
@@ -241,7 +261,7 @@ public class MainActivity extends Activity {
                 assetList.add(asset);
             }
 
-            // now that we have all the assets; set the list view adpater
+            // now that we have all the assets; set the list view adapter
             updateAdapater();
 
         } catch (JSONException jsonException) {

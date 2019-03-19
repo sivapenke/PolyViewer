@@ -59,13 +59,78 @@ limitations under the License.
         android:text="Description\n\nThis is a sample description of this model. More information about this object can be stored as part of the model or can be scrapped from Wikipedia."
         android:textColor="#ffffff" />
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/search_list"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="80dp"
-        android:background="#10293A"
-        android:orientation="horizontal"
-        android:layout_gravity="bottom" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom">
+
+        <LinearLayout
+            android:id="@+id/layout_buttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="5sp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/animate_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="450sp"
+                android:layout_marginLeft="5sp"
+                android:layout_marginRight="5sp"
+                android:layout_gravity="top|start"
+                android:background="@drawable/button_bg"
+                android:padding="3sp"
+                android:text="Animate it"
+                android:layout_weight="1"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:textColor="#ffffff" />
+
+            <Button
+                android:id="@+id/sound_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="450sp"
+                android:layout_marginLeft="5sp"
+                android:layout_marginRight="5sp"
+                android:layout_gravity="top|start"
+                android:background="@drawable/button_bg"
+                android:padding="3sp"
+                android:text="Make a sound"
+                android:layout_weight="1"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:textColor="#ffffff" />
+
+            <Button
+                android:id="@+id/learn_more_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="450sp"
+                android:layout_marginLeft="5sp"
+                android:layout_marginRight="5sp"
+                android:layout_gravity="top|start"
+                android:background="@drawable/button_bg"
+                android:padding="3sp"
+                android:text="Learn more"
+                android:layout_weight="1"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                android:textColor="#ffffff" />
+
+        </LinearLayout>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/search_list"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:background="#10293A"
+            android:layout_below="@+id/layout_buttons"
+            android:orientation="horizontal"
+            android:layout_gravity="bottom" />
+
+    </RelativeLayout>
 
     <EditText
         android:id="@+id/search_edit_text"

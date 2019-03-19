@@ -82,7 +82,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     // and is consumed by the GL thread. Once set, this is never modified.
     private volatile RawObject objectToRender;
 
-    private boolean mAnimationStatus = false;
+    private boolean mAnimationStatus = true;
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
